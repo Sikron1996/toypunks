@@ -1,1 +1,1 @@
-ToyPunks site. Insert contract address in app.js: const CONTRACT_ADDRESS = "0xYOUR_CONTRACT";
+ToyPunks fixed site. Insert contract address in app.js: const CONTRACT_ADDRESS = "0xYOUR_CONTRACT";
