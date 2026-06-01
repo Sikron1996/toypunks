@@ -5,6 +5,7 @@ const CONTRACT_ADDRESS = "PASTE_CONTRACT_ADDRESS_HERE";
 const PROJECT_ID = "fe55ea601c3e7e0925c0b33723d6b158";
 const READ_RPC = "https://ethereum.publicnode.com";
 const PRICE_ETH = "0.0001";
+
 const ABI = [
   "function mint(uint256 amount) external payable",
   "function PRICE() view returns (uint256)",
@@ -26,6 +27,7 @@ function amount(){
   $("amount").value = a;
   return a;
 }
+
 function initRead(){
   if(CONTRACT_ADDRESS === "PASTE_CONTRACT_ADDRESS_HERE"){
     status("Insert contract address in app.js");
@@ -35,6 +37,7 @@ function initRead(){
   readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
   return true;
 }
+
 async function setup(p, acc){
   if(CONTRACT_ADDRESS === "PASTE_CONTRACT_ADDRESS_HERE") throw new Error("Insert contract address in app.js");
   provider = new ethers.BrowserProvider(p);
@@ -42,14 +45,16 @@ async function setup(p, acc){
   account = acc || await signer.getAddress();
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
   readContract = contract;
+
   $("wallet").textContent = account.slice(0,6)+"..."+account.slice(-4);
   $("connectBtn").style.display = "none";
   $("topConnect").textContent = account.slice(0,6)+"..."+account.slice(-4);
-  $("mintBtn").style.display = "inline-block";
+  $("mintBtn").style.display = "block";
   closeModal();
   await loadSupply();
   await updatePrice();
 }
+
 async function connectBrowser(){
   try{
     if(!window.ethereum) throw new Error("Wallet extension not found");
@@ -60,6 +65,7 @@ async function connectBrowser(){
     await setup(window.ethereum, acc[0]);
   }catch(e){ status("Error: " + (e.shortMessage || e.message)); }
 }
+
 async function connectWC(){
   try{
     wcProvider = await EthereumProvider.init({projectId:PROJECT_ID, chains:[1], optionalChains:[1], showQrModal:true});
@@ -67,6 +73,7 @@ async function connectWC(){
     await setup(wcProvider, (wcProvider.accounts || [])[0]);
   }catch(e){ status("Error: " + (e.shortMessage || e.message)); }
 }
+
 async function loadSupply(){
   try{
     if(!readContract && !initRead()) return;
@@ -75,16 +82,19 @@ async function loadSupply(){
     await updatePrice();
   }catch(e){ status("Read error: " + (e.shortMessage || e.message)); }
 }
+
 async function getPrice(){
   if(contract){ try{return await contract.PRICE();}catch(e){} }
   return ethers.parseEther(PRICE_ETH);
 }
+
 async function getPaidAmount(){
   const qty = BigInt(amount());
   if(!contract || !account) return qty > 0n ? qty - 1n : 0n;
   const already = await contract.minted(account);
   return already === 0n ? (qty > 0n ? qty - 1n : 0n) : qty;
 }
+
 async function updatePrice(){
   try{
     const price = await getPrice();
@@ -93,6 +103,7 @@ async function updatePrice(){
     $("totalPrice").textContent = total === 0n ? "FREE" : ethers.formatEther(total) + " ETH";
   }catch(e){ status("Price error: " + (e.shortMessage || e.message)); }
 }
+
 async function mint(){
   try{
     if(!contract){ openModal(); return; }
@@ -116,6 +127,14 @@ $("mintBtn").onclick = mint;
 $("minus").onclick = async()=>{ $("amount").value = Math.max(1, amount()-1); await updatePrice(); };
 $("plus").onclick = async()=>{ $("amount").value = Math.min(100, amount()+1); await updatePrice(); };
 $("amount").oninput = updatePrice;
+
+let idx = 0;
+setInterval(() => {
+  const images = window.TOY_IMAGES || [];
+  if(!images.length) return;
+  idx = (idx + 1) % images.length;
+  $("livePreview").src = images[idx];
+}, 1800);
 
 initRead();
 loadSupply();
