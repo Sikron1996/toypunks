@@ -1,130 +1,20 @@
-// ===============================
-// ToyPunks Mint Site Settings
-// ===============================
+import { ethers } from "https://esm.sh/ethers@6.13.4";
+import EthereumProvider from "https://esm.sh/@walletconnect/ethereum-provider@2.17.2";
 const CONTRACT_ADDRESS = "PASTE_CONTRACT_ADDRESS_HERE";
-const RPC_URL = "https://eth.llamarpc.com"; // Ethereum mainnet public RPC. Change if your collection is on another chain.
-const MAX_SUPPLY = 10000;
-const MINT_PRICE_ETH = "0.00005";
-const MAX_PER_TX = 20;
-
-// ABI works with common ERC721 mint contracts: mint(uint256) payable + totalSupply()
-const ABI = [
-  "function mint(uint256 quantity) payable",
-  "function totalSupply() view returns (uint256)",
-  "function balanceOf(address owner) view returns (uint256)"
-];
-
-const images = [
-  "punk01.jpg", "punk02.jpg", "punk03.jpg", "punk04.jpg", "punk05.jpg", "punk06.jpg", "punk07.jpg",
-  "punk08.jpg", "punk09.jpg", "punk10.jpg", "punk11.jpg", "punk12.jpg", "punk13.jpg", "punk14.jpg"
-];
-
-const topGrid = document.getElementById("topGrid");
-images.forEach((img) => {
-  const div = document.createElement("div");
-  div.className = "punk-card";
-  div.innerHTML = `<img src="assets/${img}" alt="ToyPunk" />`;
-  topGrid.appendChild(div);
-});
-
-const connectBtn = document.getElementById("connectBtn");
-const mintBtn = document.getElementById("mintBtn");
-const minusBtn = document.getElementById("minusBtn");
-const plusBtn = document.getElementById("plusBtn");
-const qtyInput = document.getElementById("qtyInput");
-const statusEl = document.getElementById("status");
-const mintedCount = document.getElementById("mintedCount");
-const maxSupplyEl = document.getElementById("maxSupply");
-const priceText = document.getElementById("priceText");
-const totalPrice = document.getElementById("totalPrice");
-
-let signer;
-let writeContract;
-
-maxSupplyEl.textContent = MAX_SUPPLY.toLocaleString();
-priceText.textContent = `${MINT_PRICE_ETH} ETH`;
-qtyInput.max = MAX_PER_TX;
-
-function shortAddress(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-}
-
-function setStatus(text) {
-  statusEl.textContent = text;
-}
-
-function updateTotal() {
-  let qty = Number(qtyInput.value || 1);
-  if (qty < 1) qty = 1;
-  if (qty > MAX_PER_TX) qty = MAX_PER_TX;
-  qtyInput.value = qty;
-  totalPrice.textContent = (Number(MINT_PRICE_ETH) * qty).toFixed(5);
-}
-
-minusBtn.onclick = () => { qtyInput.value = Math.max(1, Number(qtyInput.value) - 1); updateTotal(); };
-plusBtn.onclick = () => { qtyInput.value = Math.min(MAX_PER_TX, Number(qtyInput.value) + 1); updateTotal(); };
-qtyInput.oninput = updateTotal;
-
-async function loadMinted() {
-  if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS === "PASTE_CONTRACT_ADDRESS_HERE") {
-    mintedCount.textContent = "0";
-    return;
-  }
-  try {
-    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-    const readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
-    const supply = await readContract.totalSupply();
-    mintedCount.textContent = Number(supply.toString()).toLocaleString();
-  } catch (err) {
-    console.log("Could not load totalSupply", err);
-  }
-}
-
-async function connectWallet() {
-  if (!window.ethereum) {
-    alert("Open this site in MetaMask/Trust Wallet browser or install MetaMask.");
-    return;
-  }
-  try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    const address = await signer.getAddress();
-    writeContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    connectBtn.textContent = shortAddress(address);
-    setStatus("Connected: " + shortAddress(address));
-  } catch (err) {
-    console.error(err);
-    setStatus("Wallet connection failed");
-  }
-}
-
-async function mint() {
-  if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS === "PASTE_CONTRACT_ADDRESS_HERE") {
-    alert("Paste your contract address in app.js first.");
-    return;
-  }
-  if (!writeContract) {
-    await connectWallet();
-    if (!writeContract) return;
-  }
-  const qty = Number(qtyInput.value || 1);
-  const value = ethers.utils.parseEther((Number(MINT_PRICE_ETH) * qty).toFixed(18));
-  try {
-    setStatus("Confirm transaction in wallet...");
-    const tx = await writeContract.mint(qty, { value });
-    setStatus("Transaction sent: " + tx.hash.slice(0, 10) + "...");
-    await tx.wait();
-    setStatus("Mint successful!");
-    loadMinted();
-  } catch (err) {
-    console.error(err);
-    setStatus(err?.data?.message || err?.message || "Mint failed");
-  }
-}
-
-connectBtn.onclick = connectWallet;
-mintBtn.onclick = mint;
-updateTotal();
-loadMinted();
-setInterval(loadMinted, 15000);
+const PROJECT_ID = "fe55ea601c3e7e0925c0b33723d6b158";
+const READ_RPC = "https://ethereum.publicnode.com";
+const PRICE_ETH = "0.0001";
+const ABI=["function mint(uint256 amount) external payable","function PRICE() view returns (uint256)","function totalSupply() view returns (uint256)","function minted(address user) view returns (uint256)"];
+let wcProvider,provider,signer,contract,readProvider,readContract,account;
+const $=id=>document.getElementById(id),modal=$("walletModal");
+function status(x){$("status").textContent=x}function openModal(){modal.classList.remove("hidden")}function closeModal(){modal.classList.add("hidden")}function amount(){let a=Number($("amount").value);if(!a||a<1)a=1;if(a>100)a=100;$("amount").value=a;return a}
+function initRead(){if(CONTRACT_ADDRESS==="PASTE_CONTRACT_ADDRESS_HERE"){status("Insert contract address in app.js");return false}readProvider=new ethers.JsonRpcProvider(READ_RPC);readContract=new ethers.Contract(CONTRACT_ADDRESS,ABI,readProvider);return true}
+async function setup(p,acc){if(CONTRACT_ADDRESS==="PASTE_CONTRACT_ADDRESS_HERE")throw new Error("Insert contract address in app.js");provider=new ethers.BrowserProvider(p);signer=await provider.getSigner();account=acc||await signer.getAddress();contract=new ethers.Contract(CONTRACT_ADDRESS,ABI,signer);readContract=contract;$("wallet").textContent=account.slice(0,6)+"..."+account.slice(-4);$("connectBtn").style.display="none";$("topConnect").textContent=account.slice(0,6)+"..."+account.slice(-4);$("mintBtn").style.display="inline-block";closeModal();await loadSupply();await updatePrice()}
+async function connectBrowser(){try{if(!window.ethereum)throw new Error("Wallet extension not found");if(await window.ethereum.request({method:"eth_chainId"})!=="0x1")await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1"}]});const acc=await window.ethereum.request({method:"eth_requestAccounts"});await setup(window.ethereum,acc[0])}catch(e){status("Error: "+(e.shortMessage||e.message))}}
+async function connectWC(){try{wcProvider=await EthereumProvider.init({projectId:PROJECT_ID,chains:[1],optionalChains:[1],showQrModal:true});await wcProvider.connect();await setup(wcProvider,(wcProvider.accounts||[])[0])}catch(e){status("Error: "+(e.shortMessage||e.message))}}
+async function loadSupply(){try{if(!readContract&&!initRead())return;const s=Number(await readContract.totalSupply());$("mintedText").textContent=s.toLocaleString();await updatePrice()}catch(e){status("Read error: "+(e.shortMessage||e.message))}}
+async function getPrice(){if(contract){try{return await contract.PRICE()}catch(e){}}return ethers.parseEther(PRICE_ETH)}
+async function getPaidAmount(){const qty=BigInt(amount());if(!contract||!account)return qty>0n?qty-1n:0n;const already=await contract.minted(account);return already===0n?(qty>0n?qty-1n:0n):qty}
+async function updatePrice(){try{const price=await getPrice();const paid=await getPaidAmount();const total=price*paid;$("totalPrice").textContent=total===0n?"FREE":ethers.formatEther(total)+" ETH"}catch(e){status("Price error: "+(e.shortMessage||e.message))}}
+async function mint(){try{if(!contract){openModal();return}const qty=BigInt(amount());const price=await getPrice();const paid=await getPaidAmount();const tx=await contract.mint(Number(qty),{value:price*paid});status("Tx: "+tx.hash);await tx.wait();status("Mint success");await loadSupply()}catch(e){status("Error: "+(e.shortMessage||e.message))}}
+$("topConnect").onclick=openModal;$("connectBtn").onclick=openModal;$("closeModalBtn").onclick=closeModal;$("browserWalletBtn").onclick=connectBrowser;$("walletConnectBtn").onclick=connectWC;$("mintBtn").onclick=mint;$("minus").onclick=async()=>{$("amount").value=Math.max(1,amount()-1);await updatePrice()};$("plus").onclick=async()=>{$("amount").value=Math.min(100,amount()+1);await updatePrice()};$("amount").oninput=updatePrice;initRead();loadSupply();updatePrice();
